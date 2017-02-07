@@ -47,18 +47,23 @@ class Article(pw.Model):
 
         return "\n".join(corpora)
 
+
     def compute_bow(self):
-        self.keywords = self.tags + \
-                        algorithm.tfidf(self.title)
-        self.n_bow = self.normalized_bow(self.keywords)
+        bow = algorithm.compute_bow(
+            self.title,
+            self.tags
+        )
+        self.n_bow = bow
+
 
     def to_dict(self):
         model_to_dict(self)
 
+
     @classmethod
     def all_id_with_bow(cls):
         pairs = list(cls.select(Article.id, Article.n_bow))
-        ids =    [p[0] for p in pairs]
+        ids    = [p[0] for p in pairs]
         n_bows = [p[1] for p in pairs]
         return (ids, n_bows)
 
