@@ -1,9 +1,9 @@
 import bottle
-from bottle import route, run
+from bottle import route, run, request
 import algorithm, model
 from model import Article
 
-request = bottle.Request()
+# request = bottle.Request()
 
 NotFoundError = dict(ok=False, error='Record not found')
 Result = lambda x=None: dict(ok=True, result=x)
@@ -16,13 +16,18 @@ def retrain():
 
 @route('/index/add', method = 'POST')
 def index_insert():
+    print(request)
+    print(request.json)
+
     fields = request.json['article']
 
     article = Article()
+    article.id = fields['id']
     article.title = fields['title']
     article.body  = fields['body']
     article.tags  = fields['tags']
-    article.compute_bow()
+    if algorithm.trained():
+        article.compute_bow()
     article.save()
 
     return Result()
@@ -36,10 +41,12 @@ def index_update(id):
     except Article.DoesNotExist:
         return NotFoundError
 
+    article.id = fields['id']
     article.title = fields['title']
     article.body  = fields['body']
     article.tags  = fields['tags']
-    article.compute_bow()
+    if algorithm.trained():
+        article.compute_bow()
     article.save()
 
     return Result()

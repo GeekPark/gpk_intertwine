@@ -9,26 +9,28 @@ db = pw.SqliteDatabase('articles.db')
 class NumpyArrayField(pw.Field):
     db_field = 'blob'
     def db_value(self, val):
-        val.tobytes()
+        return val is not None and val.tobytes()
     def python_value(self, val):
-        np.fromstring(val)
+        return val and np.fromstring(val)
+
 class TagField(pw.Field):
     db_field = 'varchar'
     def db_value(self, val):
-        ','.join(val)
+        return val and ','.join(val)
     def python_value(self, val):
-        val.split(',')
+        return val and val.split(',')
 
 class Article(pw.Model):
     class Meta:
         database = db
 
-    id = pw.CharField(unique = True)
-    title = pw.CharField()
-    body = pw.TextField()
-    tags = TagField()
-    keywords = pw.TextField
-    n_bow = NumpyArrayField(default = np.zeros(0))
+    _id = pw.PrimaryKeyField()
+    id = pw.IntegerField(unique = True)
+    title = pw.CharField(null = True)
+    body = pw.TextField(null = True)
+    tags = TagField(null = True)
+    keywords = pw.TextField(null = True)
+    n_bow = NumpyArrayField(default = np.zeros(algorithm.N), null = True)
     created_at = pw.DateTimeField(default = datetime.now)
 
     @classmethod
@@ -57,7 +59,16 @@ class Article(pw.Model):
 
 
     def to_dict(self):
-        model_to_dict(self)
+        return dict(
+            _id = self._id,
+            id = self.id,
+            title = self.title,
+            body = self.body,
+            tags = self.tags,
+            keywords = self.keywords,
+            n_bow = self.n_bow,
+            created_at = str(self.created_at)
+        )
 
 
     @classmethod
@@ -65,7 +76,7 @@ class Article(pw.Model):
         pairs = list(cls.select(Article.id, Article.n_bow))
         ids    = [p[0] for p in pairs]
         n_bows = [p[1] for p in pairs]
-        return (ids, n_bows)
+        return ids, n_bows
 
 
 def meta():

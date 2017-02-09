@@ -115,10 +115,13 @@ def similar_to(q, d, d_id, count):
     )
 
 
+def trained():
+    return len(word2vec_model().vocab) > 0
+
+
 def meta():
-    trained = len(word2vec_model().vocab) > 0
     return dict(
-        trained          = trained,
+        trained          = trained(),
         vocabulary_count = len(word2vec_model().vocab),
         feature_count    = N,
     )
