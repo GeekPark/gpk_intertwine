@@ -10,12 +10,12 @@ N = 100
 def retrain_word2vec(corpus):
     lines = corpus.splitlines()
 
-    model = Word2Vec([jieba.cut(l) for l in lines if len(l) >= 5])
+    model = Word2Vec([jieba.lcut(l) for l in lines if len(l) >= 5])
     model.init_sims(replace = True)
-    model.save('word2vec.model')
+    model.save('data/word2vec.model')
 
-    delattr(word2vec_model, 'm')
-    delattr(word2vec_matrix, 'm')
+    hasattr(word2vec_model, 'm')  and delattr(word2vec_model, 'm')
+    hasattr(word2vec_matrix, 'm') and delattr(word2vec_matrix, 'm')
 
 
 def word2vec_model():
@@ -25,8 +25,8 @@ def word2vec_model():
     if hasattr(word2vec_model, 'm'):
         return word2vec_model.m
 
-    if os.path.isfile('word2vec.model'):
-        word2vec_model.m = Word2Vec.load('word2vec.model')
+    if os.path.isfile('data/word2vec.model'):
+        word2vec_model.m = Word2Vec.load('data/word2vec.model')
         return word2vec_model()
 
     word2vec_model.m = Word2Vec()
@@ -48,7 +48,7 @@ def word2vec_matrix():
         norm[zero_vec] = 1
         return mat / norm
 
-    word2vec_model.m = normalize_matrix(word2vec_model().syn0)
+    word2vec_matrix.m = normalize_matrix(word2vec_model().syn0)
     return word2vec_matrix()
 
 
@@ -76,11 +76,11 @@ def compute_bow(title, tags):
 
     title_words, title_weights = tfidf(title, top=10)
     bow = bag_of_words(title_words, title_weights)
-    bow /= (bow.max if bow.max != 0 else 1)
+    bow = bow / (bow.max() if bow.max() != 0 else 1.0)
 
     tag_indices = [m.vocab[w].index for w in tags if w in m.vocab]
     bow[tag_indices] = 0.9
-    bow /= (np.linalg.norm(bow) if np.linalg.norm(bow) != 0 else 1)
+    bow = bow / (np.linalg.norm(bow) if np.linalg.norm(bow) != 0 else 1.0)
 
     return bow.reshape(1, -1)
 
@@ -110,8 +110,8 @@ def similar_to(q, d, d_id, count):
     order = (-sim).argsort()[:count]
 
     return zip(
-        d_id[order],  # id
-        sim[order]    # score
+        map(np.asscalar, d_id[order]),  # id
+        map(np.asscalar, sim[order])    # score
     )
 
 
@@ -120,10 +120,19 @@ def trained():
 
 
 def meta():
-    return dict(
+    m = word2vec_model()
+    result = dict(
         trained          = trained(),
-        vocabulary_count = len(word2vec_model().vocab),
-        feature_count    = N,
+        vocabulary_count = len(m.vocab),
+        feature_count    = N
     )
+    if trained():
+        result.update(
+            corpus_count = m.corpus_count,
+            train_time   = m.total_train_time,
+            train_count  = m.train_count
+        )
+
+    return result
 
 

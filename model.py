@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 import algorithm
 
-db = pw.SqliteDatabase('articles.db')
+db = pw.SqliteDatabase('data/articles.db')
 
 class NumpyArrayField(pw.Field):
     db_field = 'blob'
@@ -12,7 +12,6 @@ class NumpyArrayField(pw.Field):
         return val is not None and val.tobytes()
     def python_value(self, val):
         return val and np.fromstring(val)
-
 class TagField(pw.Field):
     db_field = 'varchar'
     def db_value(self, val):
@@ -41,8 +40,8 @@ class Article(pw.Model):
         for article in cls.select():
             corpora.append(
                 "\n".join([
-                    article.title,
                     article.body,
+                    article.title,
                     "\n".join(article.tags)
                 ])
             )
@@ -66,7 +65,7 @@ class Article(pw.Model):
             body = self.body,
             tags = self.tags,
             keywords = self.keywords,
-            n_bow = self.n_bow,
+            n_bow = list(self.n_bow),
             created_at = str(self.created_at)
         )
 
@@ -74,8 +73,8 @@ class Article(pw.Model):
     @classmethod
     def all_id_with_bow(cls):
         pairs = list(cls.select(Article.id, Article.n_bow))
-        ids    = [p[0] for p in pairs]
-        n_bows = [p[1] for p in pairs]
+        ids    = [p.id    for p in pairs]
+        n_bows = [p.n_bow for p in pairs]
         return ids, n_bows
 
 

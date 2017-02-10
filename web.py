@@ -5,20 +5,45 @@ from model import Article
 
 # request = bottle.Request()
 
-NotFoundError = dict(ok=False, error='Record not found')
-Result = lambda x=None: dict(ok=True, result=x)
+def Error(reason, **others):
+    return dict(ok=False, error=reason, **others)
+def Result(object=None):
+    if object is None:
+        return dict(ok=True)
+    else:
+        return dict(ok=True, result=object)
+
+def error_handled(foo):
+    def wrapper(*args, **kwargs):
+        try:
+            return Result(foo(*args, **kwargs))
+        except Article.DoesNotExist as e:
+            import traceback
+            traceback.print_exc()
+            return Error('Record not found')
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Error(
+                str(e),
+                cls=str(type(e)),
+            )
+    return wrapper
 
 @route('/train')
+@error_handled
 def retrain():
     corpus = Article.word2vec_corpus()
     algorithm.retrain_word2vec(corpus)
+
+    for article in Article.select():
+        article.compute_bow()
+        article.save()
     # model.update_bows
 
 @route('/index/add', method = 'POST')
+@error_handled
 def index_insert():
-    print(request)
-    print(request.json)
-
     fields = request.json['article']
 
     article = Article()
@@ -30,16 +55,12 @@ def index_insert():
         article.compute_bow()
     article.save()
 
-    return Result()
-
 @route('/index/update/<id>', method = 'POST')
+@error_handled
 def index_update(id):
     fields = request.json['article']
 
-    try:
-        article = Article.get(Article.id == id)
-    except Article.DoesNotExist:
-        return NotFoundError
+    article = Article.get(Article.id == id)
 
     article.id = fields['id']
     article.title = fields['title']
@@ -49,29 +70,20 @@ def index_update(id):
         article.compute_bow()
     article.save()
 
-    return Result()
-
 @route('/index/<id>', method = 'DELETE')
+@error_handled
 def index_delete(id):
-    try:
-        article = Article.get(Article.id == id)
-    except Article.DoesNotExist:
-        return NotFoundError
-
+    article = Article.get(Article.id == id)
     article.delete_instance()
-
-    return dict(ok=True)
 
 
 @route('/similar_to/<id>')
+@error_handled
 def similar_to(id):
-    count = int(request.query.count) or 10
+    count = request.query.count and int(request.query.count) or 10
 
-    try:
-        q_article = Article.get(Article.id == id)
-        assert(isinstance(q_article, Article))
-    except Article.DoesNotExist:
-        return NotFoundError
+    q_article = Article.get(Article.id == id)
+    assert(isinstance(q_article, Article))
 
     ids, bows = Article.all_id_with_bow()
     top = algorithm.similar_to(
@@ -80,26 +92,24 @@ def similar_to(id):
         ids,
         count = count
     )
-
-    return Result(top)
+    l = list(top)
+    return l
 
 
 @route('/inspect/article/<id>')
+@error_handled
 def inspect_article(id):
-    try:
-        article = Article.get(Article.id == id)
-    except Article.DoesNotExist:
-        return NotFoundError
-
-    return Result(article.to_dict())
+    article = Article.get(Article.id == id)
+    return article.to_dict()
 
 @route('/inspect/meta')
+@error_handled
 def inspect_meta():
-    return Result({
+    return {
         **algorithm.meta(),
         **model.meta()
-    })
+    }
 
 
-run(host = 'localhost', port = '32298')
+run(host = 'localhost', port = '32298', reloader=True)
 
