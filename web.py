@@ -77,23 +77,24 @@ def index_delete(id):
     article.delete_instance()
 
 
-@route('/similar_to/<id>')
+@route('/related_to/<id>')
 @error_handled
-def similar_to(id):
+def related_to(id):
     count = request.query.count and int(request.query.count) or 10
 
     q_article = Article.get(Article.id == id)
     assert(isinstance(q_article, Article))
 
     ids, bows = Article.all_id_with_bow()
-    top = algorithm.similar_to(
+    top = algorithm.related_to(
         q_article.n_bow,
         bows,
         ids,
         count = count
     )
-    l = list(top)
-    return l
+
+    return list(top)
+
 
 
 @route('/inspect/article/<id>')
@@ -111,5 +112,5 @@ def inspect_meta():
     }
 
 
-run(host = 'localhost', port = '32298', reloader=True)
+run(host = 'localhost', port = '32298')
 

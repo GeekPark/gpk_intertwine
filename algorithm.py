@@ -103,7 +103,7 @@ def ssi_similarity(q, d):
     #return q.dot(d.T)
 
 
-def similar_to(q, d, d_id, count):
+def related_to(q, d, d_id, count):
     q, d, d_id = np.array(q), np.array(d), np.array(d_id)
 
     sim = ssi_similarity(q.reshape([1,-1]), d).ravel()
