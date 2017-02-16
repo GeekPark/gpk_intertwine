@@ -97,22 +97,30 @@ def ssi_similarity(q, d):
     """
 
     m = word2vec_matrix()
-    return np.dot(q.dot(m), m.T.dot(d.T)) + q.dot(d.T)
+
+    if id(q) == id(d):
+        t = q.dot(m)
+        return t.dot(t.T) + q.dot(d.T)
+
+    return np.dot(q.dot(m), d.dot(m).T) + q.dot(d.T)
 
     # orthogonal word mode
     #return q.dot(d.T)
 
+def full_relation(q, ids, count):
+    ids = np.array(ids)
+    sim = ssi_similarity(q, q)
+    order = (-sim).argsort()[:, :count]
+
+    return ids[order]
 
 def related_to(q, d, d_id, count):
-    q, d, d_id = np.array(q), np.array(d), np.array(d_id)
+    d_id = np.array(d_id)
 
-    sim = ssi_similarity(q.reshape([1,-1]), d).ravel()
-    order = (-sim).argsort()[:count]
+    sim = ssi_similarity(q, d).ravel()
+    order = (-sim).argsort()[:, :count]
 
-    return zip(
-        map(np.asscalar, d_id[order]),  # id
-        map(np.asscalar, sim[order])    # score
-    )
+    return list(map(np.asscalar, d_id[order.A1]))
 
 
 def trained():
