@@ -1,0 +1,6 @@
+peewee
+numpy
+scipy
+bottle
+jieba
+gensim
