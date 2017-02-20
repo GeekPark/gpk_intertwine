@@ -7,7 +7,7 @@ namespace :deploy do
   end
   task 'server_start' do
     on roles(:all) do
-      execute "service gpk_intertwine restart"
+      execute "supervisorctl restart intertwine"
     end
   end
 end
